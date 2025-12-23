@@ -13,7 +13,7 @@ This repository currently contains a **FastAPI backend skeleton** (in progress),
 
 ---
 
-## 🚀 Tech Stack
+## 🛠️ Tech Stack
 
 - **Backend:** FastAPI (Python)
 - **API Server:** Uvicorn
