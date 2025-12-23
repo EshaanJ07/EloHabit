@@ -42,14 +42,25 @@ def create_habit():
 def get_current_habits():
     return {"habits" : list(habits.values())}
 
-#Frontend deletes current user habit
-@app.delete("/api/habits/{habit_id}")
+#Frontend asks backendto delete current user habit
+@app.delete("/api/habits/{habit_id}") #The thing inside the brackets lets the API know what to extract and pass as a parameter
 def delete_current_habits(habit_id: str):
     if habit_id in habits:
         del habits[habit_id]
         return {"ok": True}
     
     return {"ok": False}
+
+#Frontend asks backend to update habit
+@app.patch("/api/habits/{habit_id}")
+def update_habit(habit_id: str, updates: dict): #Backend looks at the JSON body for updates since it is not in the URL path
+    if habit_id in habits:
+        for key in updates:
+            habits[habit_id][key] = updates[key]
+        return habits[habit_id]
+    
+    return {"ok": False}
+
     
 
 
