@@ -9,7 +9,7 @@ def root(): #Root function: The function below .get, serves to return data, call
 
 
 #Temporary storage of habits
-habits = []
+habits = {}
 
 
 
@@ -26,31 +26,31 @@ def get_current_user():
 
 #Frontend asks backend to create new habits
 @app.post("/api/habits")
-def create_habits():
+def create_habit():
     habit_id = str(uuid4()) #Generates unique habit id
     habit_dict =  {"user_id": "temp_user_id",
             "habit_id": habit_id, 
             "habit_name": "temp_habit_name", 
             "days_per_week": 3,
     }
-    habits.append(habit_dict)
+    habits[habit_id] = habit_dict
     
     return habit_dict
 
 #Frontend gets current user habits
 @app.get("/api/habits")
 def get_current_habits():
-    return {"habits" : habits} #Habits will be stored in an array of dictionaries (from create_habits route)
+    return {"habits" : list(habits.values())}
 
 #Frontend deletes current user habit
 @app.delete("/api/habits/{habit_id}")
-def delete_current_habits(habit_id):
-    for i in range(len(habits)):
-        if habits[i]["habit_id"] == habit_id:
-            del habits[i]
-            break
-
-    return 
+def delete_current_habits(habit_id: str):
+    if habit_id in habits:
+        del habits[habit_id]
+        return {"ok": True}
+    
+    return {"ok": False}
+    
 
 
 
