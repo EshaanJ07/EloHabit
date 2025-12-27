@@ -1,30 +1,9 @@
 from fastapi import FastAPI, HTTPException, Depends #Import fastapi class from FastAPI Library
-from pydantic import BaseModel, Field
 from uuid import uuid4 #Allows random IDs to be created that guarantees no collision
-
-
-#Habit schema class that sets constraints on the data that JSON sends from frontend to backend (What a habit is supposed to look like)
-class HabitBase(BaseModel): #Basemodel automaically verifies data, and any invalid data allows FastAPI to generate an HTTP error response
-    habit_name: str = Field(..., min_length=1, description="Name of habit")
-    days_per_week: int = Field(..., ge=1, le=7, description="Weekly frequency habit must be completed")
-
-#Class inherited from HabitBase that defines the data format the user must conform to create a new habit
-class HabitCreate(HabitBase):
-    """Payload when user creates a new habit"""
-
-#Schema class for validating partial updates to a user habit
-class HabitUpdate(BaseModel):
-    habit_name: str | None = Field(None, min_length=1, description="Updated habit name")
-    days_per_week : int | None = Field(None, ge=1, le=7, description="Updated weekly frequency habit must be completed")
-
-#Schema class that defines the entirety of a habit object, which includes backend-owned habit_id and user_id
-class Habit(HabitBase):
-    habit_id: str
-    user_id: str
-
+from schemas import HabitCreate, HabitUpdate, Habit
+from deps import get_current_user_id
 
 app = FastAPI() #Creates FastAPI application object
-
 
 @app.get("/") #Local URL ending with / will call the function right below it (.get refers to the request)
 def root(): #Root function: The function below .get, serves to return data, call functions, give response, etc.
@@ -34,12 +13,7 @@ def root(): #Root function: The function below .get, serves to return data, call
 
 
 #Temporary storage of habits keyed by habit_id
-habits: dict[str, Habit] = {} #Type hint annotation where habit_id functions as the key and a Habit object as the value
-
-#Dependency functions ----------- (how the API knows who is requesting the route)
-def get_current_user_id() -> str:
-    return "temp_user_id"
-
+habits: dict[str, Habit] = {} 
 
 #Dashboard Routes -----------
 #Frontend gets current user information
@@ -55,12 +29,15 @@ def get_current_user() -> dict[str, str]: #This function is intended to return a
 
 #Frontend asks backend to create new habits
 @app.post("/api/habits")
-def create_habit(payload: HabitCreate) -> Habit: #Takes in HabitCreate argument with variable name payload to ensure correct data formatting of a habit
+def create_habit(
+    payload: HabitCreate,
+    user_id: str = Depends(get_current_user_id)
+    ) -> Habit: #Takes in HabitCreate argument with variable name payload to ensure correct data formatting of a habit
     """Create a habit tied to the current (placeholder) user and store it in memory"""
     
     habit_id = str(uuid4()) #Generates unique habit id
     habit = Habit(
-        user_id="temp_user_id",
+        user_id=user_id,
         habit_id=habit_id,
         habit_name=payload.habit_name,
         days_per_week=payload.days_per_week,
@@ -71,7 +48,7 @@ def create_habit(payload: HabitCreate) -> Habit: #Takes in HabitCreate argument 
 #Frontend gets current user habits
 @app.get("/api/habits")
 def get_current_habits(
-    user_id = Depends(get_current_user_id) 
+    user_id: str = Depends(get_current_user_id) 
 ) -> dict[str, list[Habit]]:
     """Returns all habits to the placeholder user."""
     
@@ -98,7 +75,7 @@ def delete_habit(
 def update_habit(
     habit_id: str, 
     updates: HabitUpdate, 
-    user_id = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id)
 ) -> Habit: #Backend looks at the JSON body for updates since it is not in the URL path
     """Updates habit values sent by user and leaves unspecified fields untouched"""
     habit = habits.get(habit_id)
