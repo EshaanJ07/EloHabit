@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException #Import fastapi class from FastAPI Library
+from fastapi import FastAPI, HTTPException, Depends #Import fastapi class from FastAPI Library
 from pydantic import BaseModel, Field
 from uuid import uuid4 #Allows random IDs to be created that guarantees no collision
 
@@ -36,6 +36,10 @@ def root(): #Root function: The function below .get, serves to return data, call
 #Temporary storage of habits keyed by habit_id
 habits: dict[str, Habit] = {} #Type hint annotation where habit_id functions as the key and a Habit object as the value
 
+#Dependency functions ----------- (how the API knows who is requesting the route)
+def get_current_user_id() -> str:
+    return "temp_user_id"
+
 
 #Dashboard Routes -----------
 #Frontend gets current user information
@@ -66,34 +70,47 @@ def create_habit(payload: HabitCreate) -> Habit: #Takes in HabitCreate argument 
 
 #Frontend gets current user habits
 @app.get("/api/habits")
-def get_current_habits() -> dict[str, list[Habit]]:
+def get_current_habits(
+    user_id = Depends(get_current_user_id) 
+) -> dict[str, list[Habit]]:
     """Returns all habits to the placeholder user."""
     
-    return {"habits" : list(habits.values())} #Returns string "habits" with a list of all Habit objects from the dictionary values of habits
+    return {
+        "habits" : [h for h in habits.values() if h.user_id == user_id]
+    } #Returns string "habits" with a list of all habit objects belonging to user
 
 #Frontend asks backend to delete current user habit
 @app.delete("/api/habits/{habit_id}") #The thing inside the brackets lets the API know what to extract and pass as a parameter
-def delete_current_habit(habit_id: str) -> dict[str, bool]:
-    """Delete a habit if it exists, otherwise return a 404 error"""
+def delete_habit(
+    habit_id: str, 
+    user_id: str = Depends(get_current_user_id)
+) -> dict[str, bool]:
+    """Delete a habit if it exists and belongs to the user, otherwise return a 404 error"""
+    habit = habits.get(habit_id) #Returns None if no key exists
+    if habit is None or habit.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Habit not found") #Habit not found will send specific 404 error to frontend to deliver to user
+        
+    del habits[habit_id]
+    return {"ok": True}
     
-    if habit_id in habits:
-        del habits[habit_id]
-        return {"ok": True}
-    
-    raise HTTPException(status_code=404, detail="Habit not found") #Habit not found will send specific 404 error to frontend to deliver to user
-
 #Frontend asks backend to update habit
 @app.patch("/api/habits/{habit_id}")
-def update_habit(habit_id: str, updates: HabitUpdate) -> Habit: #Backend looks at the JSON body for updates since it is not in the URL path
+def update_habit(
+    habit_id: str, 
+    updates: HabitUpdate, 
+    user_id = Depends(get_current_user_id)
+) -> Habit: #Backend looks at the JSON body for updates since it is not in the URL path
     """Updates habit values sent by user and leaves unspecified fields untouched"""
-    
-    if habit_id not in habits:
+    habit = habits.get(habit_id)
+    if habit is None or habit.user_id != user_id:
         raise HTTPException(status_code=404, detail="Habit not found")
-    
-    current_habit = habits[habit_id]
-    updated_values = updates.model_dump(exclude_unset=True) #converts HabitUpdate object into a dict, and deletes any keys the user did not provide in fields
-    habits[habit_id] = current_habit.model_copy(update=updated_values) #creates a new and identical habit object, updates it with values of updated_values, and stores it in habits
+
+    updated_values = updates.model_dump(exclude_unset=True, exclude_none=True) #converts HabitUpdate object into a dict, and deletes any keys the user did not provide in fields AND keys where the values are None
+    habits[habit_id] = habit.model_copy(update=updated_values) #creates a new and identical habit object, updates it with values of updated_values, and stores it in habits
     return habits[habit_id]
+
+
+
 
     
 
