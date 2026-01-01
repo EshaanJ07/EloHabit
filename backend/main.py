@@ -31,7 +31,7 @@ def get_current_user() -> dict[str, str]: #This function is intended to return a
 @app.post("/api/habits")
 def create_habit(
     payload: HabitCreate,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
     ) -> Habit: #Takes in HabitCreate argument with variable name payload to ensure correct data formatting of a habit
     """Create a habit tied to the current (placeholder) user and store it in memory"""
     
@@ -48,7 +48,7 @@ def create_habit(
 #Frontend gets current user habits
 @app.get("/api/habits")
 def get_current_habits(
-    user_id: str = Depends(get_current_user_id) 
+    user_id: str = Depends(get_current_user_id),
 ) -> dict[str, list[Habit]]:
     """Returns all habits to the placeholder user."""
     
@@ -60,7 +60,7 @@ def get_current_habits(
 @app.delete("/api/habits/{habit_id}") #The thing inside the brackets lets the API know what to extract and pass as a parameter
 def delete_habit(
     habit_id: str, 
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
 ) -> dict[str, bool]:
     """Delete a habit if it exists and belongs to the user, otherwise return a 404 error"""
     habit = habits.get(habit_id) #Returns None if no key exists
@@ -75,7 +75,7 @@ def delete_habit(
 def update_habit(
     habit_id: str, 
     updates: HabitUpdate, 
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
 ) -> Habit: #Backend looks at the JSON body for updates since it is not in the URL path
     """Updates habit values sent by user and leaves unspecified fields untouched"""
     habit = habits.get(habit_id)
