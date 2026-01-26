@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 class HabitBase(BaseModel): #Basemodel automaically verifies data, and any invalid data allows FastAPI to generate an HTTP error response
     habit_name: str = Field(..., min_length=1, description="Name of habit")
     days_per_week: int = Field(..., ge=1, le=7, description="Weekly frequency habit must be completed")
-
+    
 #Class inherited from HabitBase that defines the data format the user must conform to create a new habit
 class HabitCreate(HabitBase):
     """Payload when user creates a new habit"""

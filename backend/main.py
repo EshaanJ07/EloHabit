@@ -1,20 +1,20 @@
-from fastapi import FastAPI, HTTPException, Depends #Import fastapi class from FastAPI Library
-from uuid import uuid4 #Allows random IDs to be created that guarantees no collision
+from fastapi import FastAPI, HTTPException, Depends 
+from uuid import uuid4 
 from schemas import HabitCreate, HabitUpdate, Habit
 from deps import get_current_user_id
 from database import insert_habit, get_database_habit, delete_database_habit, update_database_habit, return_database_user_habits
 
-app = FastAPI() #Creates FastAPI application object
+app = FastAPI() 
 
-@app.get("/") #Local URL ending with / will call the function right below it (.get refers to the request)
-def root(): #Root function: The function below .get, serves to return data, call functions, give response, etc.
+@app.get("/") 
+def root(): 
     """Health check endpoint to verify backend is up and running"""
     
-    return {"message": "EloHabit backend is running"} #Returning a dictionary, standard return type for APIs (flexible)
+    return {"message": "EloHabit backend is running"} 
 
 
 #Temporary storage of habits keyed by habit_id
-habits: dict[str, Habit] = {} 
+#habits: dict[str, Habit] = {} 
 
 #Dashboard Routes -----------
 #Frontend gets current user information
@@ -33,10 +33,10 @@ def get_current_user() -> dict[str, str]: #This function is intended to return a
 def create_habit(
     payload: HabitCreate,
     user_id: str = Depends(get_current_user_id),
-) -> Habit: #Takes in HabitCreate argument with variable name payload to ensure correct data formatting of a habit
+) -> Habit:
     """Create a habit tied to the current (placeholder) user and store it in database"""
     
-    habit_id = str(uuid4()) #Generates unique habit id
+    habit_id = str(uuid4()) 
     habit = Habit(
         user_id=user_id,
         habit_id=habit_id,
@@ -56,10 +56,10 @@ def get_current_habits(
     
     return {
         "habits" : return_database_user_habits(user_id)
-    } #Returns string "habits" with a list of all habit objects belonging to user
+    } 
 
 #Frontend asks backend to delete current user habit
-@app.delete("/api/habits/{habit_id}") #The thing inside the brackets lets the API know what to extract and pass as a parameter
+@app.delete("/api/habits/{habit_id}") 
 def delete_habit(
     habit_id: str, 
     user_id: str = Depends(get_current_user_id),
@@ -69,7 +69,7 @@ def delete_habit(
     if delete_database_habit(habit_id, user_id):
         return {"ok": True}
     
-    raise HTTPException(status_code=404, detail="Habit not found") #Habit not found will send specific 404 error to frontend to deliver to user
+    raise HTTPException(status_code=404, detail="Habit not found")
     
 #Frontend asks backend to update habit
 @app.patch("/api/habits/{habit_id}")
@@ -77,7 +77,7 @@ def update_habit(
     habit_id: str, 
     updates: HabitUpdate, 
     user_id: str = Depends(get_current_user_id),
-) -> Habit: #Backend looks at the JSON body for updates since it is not in the URL path
+) -> Habit:
     """Updates habit values sent by user and leaves unspecified fields untouched"""
     
     habit = get_database_habit(habit_id, user_id)
