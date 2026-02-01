@@ -1,0 +1,85 @@
+from enum import Enum
+
+class Rank(Enum): #Classifying Rank as its own type, where the types of ranks become objects with various metadeta
+    MUD = 0
+    CLAY = 50
+    BRONZE = 150
+    IRON = 350
+    GOLD = 650
+    PLATINUM = 1050
+    DIAMOND = 1550
+    AMETHYST = 2150
+    CHAMPION = 2850
+    POWERHOUSE = 3650
+
+    @property #Allows doing rank.min_ae to turn into an int, not a function
+    def min_ae(self) -> int: #Allowing .min_ae to be used instead of .value for future scalability and clarity
+        return self.value
+
+def get_rank_from_ae(user_ae: int) -> Rank:
+    """Returns the rank corresponding to the amount of AE."""
+    
+    if user_ae < 0:
+        raise ValueError("AE cannot be negative.")
+
+    for rank in reversed(list(Rank)):
+        if user_ae >= rank.min_ae:
+            return rank
+    
+    #Defensive programming, theoretically this line should never execute
+    raise RuntimeError("Rank cannot be determined.") 
+
+def calculate_habit_base(habit_time: int) -> float:
+    """Returns the base amount of AE rewarded based on habit time."""
+    
+    if habit_time <= 0 or habit_time > 480:
+        raise ValueError("Time to complete habit must be in between 1 minute and 8 hours.")
+    
+    #Tuple is formated such that (1 AE per x minutes, max minutes in this bracket)
+    conversion_rate = [
+        (5, 60), 
+        (7, 60), 
+        (8, 60),
+        (14, 60), 
+        (17, 240),
+    ]
+    
+    habit_base = 0.0
+    time_remaining = habit_time
+    
+    for rate, minute_range in conversion_rate:
+        if time_remaining <= minute_range:
+            habit_base += (time_remaining/rate)
+            break
+        else:
+            time_remaining -= minute_range
+            habit_base += (minute_range/rate)
+    
+    return habit_base
+
+def calculate_streak_mp(habit_streak: int) -> float:
+    """Returns the streak multiplier corresponding to a habit's streak. """
+    
+    if type(habit_streak) is not int:
+        raise TypeError("Habit streak must be an integer.")
+    elif habit_streak < 0:
+        raise ValueError("Habit streak cannot be less than 0.")
+    
+    return min(1 + (0.025 * habit_streak), 2)
+
+def calculate_ae_rewarded(
+        habit_time: int, 
+        habit_streak: int
+) -> int:
+    """Calculates habit base and streak multiplier and calculates final AE rewarded."""
+    
+    habit_base = calculate_habit_base(habit_time)
+    streak_mult = calculate_streak_mp(habit_streak)
+
+    return int(habit_base * streak_mult)
+
+
+
+
+
+        
