@@ -19,6 +19,9 @@ class Rank(Enum): #Classifying Rank as its own type, where the types of ranks be
 def get_rank_from_ae(user_ae: int) -> Rank:
     """Returns the rank corresponding to the amount of AE."""
     
+    if not isinstance(user_ae, int) or isinstance(user_ae, bool):
+        raise TypeError(f"AE must be an integer of rank points, instead got {type(user_ae).__name__}.")
+
     if user_ae < 0:
         raise ValueError("AE cannot be negative.")
 
@@ -31,6 +34,9 @@ def get_rank_from_ae(user_ae: int) -> Rank:
 
 def calculate_habit_base(habit_time: int) -> float:
     """Returns the base amount of AE rewarded based on habit time."""
+    
+    if not isinstance(habit_time, int) or isinstance(habit_time, bool):
+        raise TypeError(f"Habit time must be an integer number of minutes, instead got {type(habit_time).__name__}.")
     
     if habit_time <= 0 or habit_time > 480:
         raise ValueError("Time to complete habit must be in between 1 minute and 8 hours.")
@@ -60,8 +66,8 @@ def calculate_habit_base(habit_time: int) -> float:
 def calculate_streak_mp(habit_streak: int) -> float:
     """Returns the streak multiplier corresponding to a habit's streak. """
     
-    if type(habit_streak) is not int:
-        raise TypeError("Habit streak must be an integer.")
+    if not isinstance(habit_streak, int) or isinstance(habit_streak, bool):
+        raise TypeError(f"Habit streak must be an integer of streak, instead got {type(habit_streak).__name__}.")
     elif habit_streak < 0:
         raise ValueError("Habit streak cannot be less than 0.")
     
@@ -77,7 +83,6 @@ def calculate_ae_rewarded(
     streak_mult = calculate_streak_mp(habit_streak)
 
     return int(habit_base * streak_mult)
-
 
 
 
