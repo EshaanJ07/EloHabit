@@ -16,7 +16,7 @@ def root():
 #Dashboard Routes -----------
 #Frontend gets current user information
 @app.get("/api/me")
-def get_current_user() -> dict[str, str]: #This function is intended to return a dictionary with keys and values of strings
+def get_current_user() -> dict[str, str]: 
     """Placeholder user information until authentication development"""
     
     return {
@@ -25,7 +25,6 @@ def get_current_user() -> dict[str, str]: #This function is intended to return a
         "rank": "temp_rank",
     }
 
-#Frontend asks backend to create new habits
 @app.post("/api/habits")
 def create_habit(
     payload: HabitCreate,
@@ -38,9 +37,6 @@ def create_habit(
     except HabitLimitExceeded as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
-    
-
 #Frontend gets current user habits
 @app.get("/api/habits")
 def get_current_habits(
@@ -52,20 +48,20 @@ def get_current_habits(
         "habits" : return_database_user_habits(user_id)
     } 
 
-#Frontend asks backend to delete current user habit
 @app.delete("/api/habits/{habit_id}") 
 def delete_habit(
     habit_id: str, 
     user_id: str = Depends(get_current_user_id),
 ) -> dict[str, bool]:
-    """Delete a habit if it exists and belongs to the user, otherwise return a 404 error"""
+    """Runs the route path for when a user attempts to delete a habit."""
     
-    if delete_database_habit(habit_id, user_id):
-        return {"ok": True}
+    try:
+        delete_habit_for_user(habit_id, user_id)
+        return {"ok" : True}
+    except HabitNotFound as e:
+        raise HTTPException(status_code=404, detail=str(e))
     
-    raise HTTPException(status_code=404, detail="Habit not found")
-    
-#Frontend asks backend to update habit
+#Frontend asks backend to update habits
 @app.patch("/api/habits/{habit_id}")
 def update_habit(
     habit_id: str, 
