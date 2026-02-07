@@ -1,4 +1,5 @@
 from enum import Enum
+from database import get_habit_count
 
 class Rank(Enum): #Classifying Rank as its own type, where the types of ranks become objects with various metadeta
     MUD = 0
@@ -84,7 +85,22 @@ def calculate_ae_rewarded(
 
     return int(habit_base * streak_mult)
 
+def can_create_habit(user_id: str) -> bool:
+    """Returns True if the user can make a new habit, otherwise returns false."""
+    
+    habit_count = get_habit_count(user_id)
+
+    return habit_count < 5
 
 
+"""
+total_ae = 0
+for i in range(1, 31):
+    total_ae += calculate_ae_rewarded(300, i)
+    total_ae += calculate_ae_rewarded(300, i)
+    
 
-        
+#print(total_ae)
+#print(get_rank_from_ae(total_ae))
+"""
+print(Rank.GOLD.min_ae)

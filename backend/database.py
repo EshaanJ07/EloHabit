@@ -119,3 +119,7 @@ def return_database_user_habits(user_id: str) -> list[Habit]:
         )
         
         return [Habit(tup[0], tup[1], tup[2], tup[3]) for tup in c.fetchall()]
+    
+def get_habit_count(user_id: str):
+    """Returns the number of habits the user has."""
+    pass
