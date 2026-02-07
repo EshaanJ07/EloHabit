@@ -1,5 +1,15 @@
 from enum import Enum
-from database import get_habit_count
+from database import *
+from schemas import HabitCreate, HabitUpdate, Habit
+from uuid import uuid4
+
+#Domain Exception -> Defining a new type of error that can be raised, that behaves exactly like a type of exception
+class HabitLimitExceeded(Exception):
+    pass
+
+class HabitNotFound(Exception):
+    pass
+
 
 class Rank(Enum): #Classifying Rank as its own type, where the types of ranks become objects with various metadeta
     MUD = 0
@@ -33,16 +43,10 @@ def get_rank_from_ae(user_ae: int) -> Rank:
     #Defensive programming, theoretically this line should never execute
     raise RuntimeError("Rank cannot be determined.") 
 
-def calculate_habit_base(habit_time: int) -> float:
+def calc_base_ae(habit_time: int) -> float:
     """Returns the base amount of AE rewarded based on habit time."""
     
-    if not isinstance(habit_time, int) or isinstance(habit_time, bool):
-        raise TypeError(f"Habit time must be an integer number of minutes, instead got {type(habit_time).__name__}.")
-    
-    if habit_time <= 0 or habit_time > 480:
-        raise ValueError("Time to complete habit must be in between 1 minute and 8 hours.")
-    
-    #Tuple is formated such that (1 AE per x minutes, max minutes in this bracket)
+   #Tuple is formated such that (1 AE per x minutes, max minutes in this bracket)
     conversion_rate = [
         (5, 60), 
         (7, 60), 
@@ -51,49 +55,83 @@ def calculate_habit_base(habit_time: int) -> float:
         (17, 240),
     ]
     
-    habit_base = 0.0
+    base_ae = 0.0
     time_remaining = habit_time
     
     for rate, minute_range in conversion_rate:
         if time_remaining <= minute_range:
-            habit_base += (time_remaining/rate)
+            base_ae += (time_remaining/rate)
             break
         else:
             time_remaining -= minute_range
-            habit_base += (minute_range/rate)
+            base_ae += (minute_range/rate)
     
-    return habit_base
+    return base_ae
 
-def calculate_streak_mp(habit_streak: int) -> float:
+def calc_streak_mp(habit_streak: int) -> float:
     """Returns the streak multiplier corresponding to a habit's streak. """
     
-    if not isinstance(habit_streak, int) or isinstance(habit_streak, bool):
-        raise TypeError(f"Habit streak must be an integer of streak, instead got {type(habit_streak).__name__}.")
-    elif habit_streak < 0:
+    if habit_streak < 0:
         raise ValueError("Habit streak cannot be less than 0.")
     
     return min(1 + (0.025 * habit_streak), 2)
 
-def calculate_ae_rewarded(
-        habit_time: int, 
-        habit_streak: int
+def calc_ae_rewarded(
+    habit_time: int, 
+    habit_streak: int
 ) -> int:
-    """Calculates habit base and streak multiplier and calculates final AE rewarded."""
+    """Calculates base ae and streak multiplier and calculates final AE rewarded."""
     
-    habit_base = calculate_habit_base(habit_time)
-    streak_mult = calculate_streak_mp(habit_streak)
+    base_ae = calc_base_ae(habit_time)
+    streak_mult = calc_streak_mp(habit_streak)
 
-    return int(habit_base * streak_mult)
+    return int(base_ae * streak_mult)
 
-def can_create_habit(user_id: str) -> bool:
+def assert_can_create_habit(user_id: str) -> None:
     """Returns True if the user can make a new habit, otherwise returns false."""
     
     habit_count = get_habit_count(user_id)
 
-    return habit_count < 5
+    if habit_count >= 5:
+        raise HabitLimitExceeded(f"User already has {habit_count}/5 habits.")
+
+def create_habit_for_user(
+    user_id: str,
+    payload: HabitCreate,
+) -> Habit:
+    """Create a habit tied to the user, if allowed."""
+    
+    assert_can_create_habit(user_id)
+     
+    habit = Habit(
+        user_id=user_id,
+        habit_id=str(uuid4()),
+        habit_name=payload.habit_name,
+        sched_days=payload.sched_days,
+        habit_time=payload.habit_time,
+    )
+    
+    insert_habit(habit)
+    return habit
+
+def delete_habit_for_user(
+    habit_id: str,
+    user_id: str,
+) -> None:
+    """Delete a habit tied to the user, if allowed."""
+    deleted = delete_database_habit(habit_id, user_id)
+    
+    if not deleted:
+        raise HabitNotFound(f"Habit {habit_id} not found.")
+    
+
+
+
+
 
 
 """
+Add
 total_ae = 0
 for i in range(1, 31):
     total_ae += calculate_ae_rewarded(300, i)
@@ -103,4 +141,3 @@ for i in range(1, 31):
 #print(total_ae)
 #print(get_rank_from_ae(total_ae))
 """
-print(Rank.GOLD.min_ae)
