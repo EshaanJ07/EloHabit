@@ -3,6 +3,7 @@ from uuid import uuid4
 from schemas import HabitCreate, HabitUpdate, Habit
 from deps import get_current_user_id
 from database import insert_habit, get_database_habit, delete_database_habit, update_database_habit, return_database_user_habits
+from logic import *
 
 app = FastAPI() 
 
@@ -11,10 +12,6 @@ def root():
     """Health check endpoint to verify backend is up and running"""
     
     return {"message": "EloHabit backend is running"} 
-
-
-#Temporary storage of habits keyed by habit_id
-#habits: dict[str, Habit] = {} 
 
 #Dashboard Routes -----------
 #Frontend gets current user information
@@ -34,18 +31,15 @@ def create_habit(
     payload: HabitCreate,
     user_id: str = Depends(get_current_user_id),
 ) -> Habit:
-    """Create a habit tied to the current (placeholder) user and store it in database"""
+    """Runs the route path for when a user attempts to create a new habit."""
     
-    habit_id = str(uuid4()) 
-    habit = Habit(
-        user_id=user_id,
-        habit_id=habit_id,
-        habit_name=payload.habit_name,
-        days_per_week=payload.days_per_week,
-    )
+    try: 
+        return create_habit_for_user(user_id, payload)
+    except HabitLimitExceeded as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
     
-    insert_habit(habit)
-    return habit
 
 #Frontend gets current user habits
 @app.get("/api/habits")
